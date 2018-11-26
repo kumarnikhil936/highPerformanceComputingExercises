@@ -55,34 +55,29 @@ int checkMandelbrot(float real, float imag, int cutoff){
 }
 
 
-
 void HandleBlock(int my_rank, Block block, MPI_Win* window, int total_size_x, int**my_local_results, int max_number_iterations){
 	int v, b;
 	for(v=0;v<block.target_size;++v){
-			for(b=0;b<block.target_size;++b){
+		for(b=0;b<block.target_size;++b){
 
-				int result = checkMandelbrot(
-					block.x + block.size * b / block.target_size
-					,block.y + block.size * v / block.target_size
-					, max_number_iterations
-				);
+			int result = checkMandelbrot(block.x + block.size * b / block.target_size, block.y + block.size * v / block.target_size, max_number_iterations);
 
-
-				(*my_local_results)[b+v*block.target_size] = result; 
-			}
+			(*my_local_results)[b+v*block.target_size] = result; 
+		}
 	}
 
-	for(v=0;v<block.target_size;++v){
-
+	for(v=0;v<block.target_size;++v) {
+		// Create a lock on the window using the semaphore MPI_LOCK_EXCLUSIVE so that other process doesn't attempt 
+		// to add anything to the memory while one process is writing something
 		MPI_Win_lock( MPI_LOCK_EXCLUSIVE, 0, 0, *window);
-
+		
+		// Add the data to the open shared memory window using the offset information provided in the hint
         	MPI_Put( (*my_local_results) + v*block.target_size, block.target_size, MPI_INT, 0, (v * total_size_x) + block.target_pos, block.target_size, MPI_INT, *window);
-
+		
+		// Unlock the window
       	        MPI_Win_unlock(0, *window);
 	}
 }
-
-
 
 
 int main(int argc, char *argv[]){
@@ -114,13 +109,10 @@ int main(int argc, char *argv[]){
  	static unsigned char greyscale[3];
 	greyscale[0]=0; greyscale[1]=0; greyscale[2]=0;
 
-
-
 	MPI_Init(&argc,&argv);
 	int my_rank,total_ranks;
 	MPI_Comm_size(MPI_COMM_WORLD,&total_ranks);
 	MPI_Comm_rank(MPI_COMM_WORLD,&my_rank);
-
 
 	MPI_Win window;
 	int * shared_data;
@@ -144,12 +136,12 @@ int main(int argc, char *argv[]){
 
 		MPI_Aint siz = output_size_pixels * output_size_pixels * sizeof(int);
 
-
 		MPI_Alloc_mem(siz, MPI_INFO_NULL, &shared_data);
+
 		MPI_Win_create(shared_data, siz, sizeof(int),MPI_INFO_NULL, MPI_COMM_WORLD, &window);
+	} 
 
-
-	} else {
+	else {
 		//All other ranks make no memory available for remote access
 		MPI_Win_create(shared_data, 0,sizeof(int),MPI_INFO_NULL, MPI_COMM_WORLD, &window);
 	}
@@ -158,38 +150,45 @@ int main(int argc, char *argv[]){
 	int * my_result_vals;
 
 	int blocks_per_direction = total_ranks; // total number of processes
+	
 	int total_blocks = blocks_per_direction * blocks_per_direction;
+	
 	int block_pixel_size = output_size_pixels / blocks_per_direction;
+	
 	//Allocate a block of memory to keep our local results until sending
 	my_result_vals = malloc(sizeof(int)*(block_pixel_size  * block_pixel_size));
 
-
 	int block_coord_x = 0; //In full blocks
+
 	int block_coord_y = 0;
 	
 	int blocks;
+
 	for (blocks=0; blocks<blocks_per_direction; blocks++) {
-	//Make a block and fill it with the neccessary information
-	Block block;
+		//Make a block and fill it with the neccessary information
+		Block block;
+	
+		block_coord_y = blocks;
+	
+		if (blocks % 2 == 0)
+			block_coord_x = my_rank;
+		else
+			block_coord_x = blocks_per_direction - my_rank - 1;
+	
+		block.x = pos_x + size / blocks_per_direction * block_coord_x;		//upper left corner of the block we want to manage
+		
+		block.y = pos_y + size / blocks_per_direction * block_coord_y;
+		
+		block.size = size / blocks_per_direction;
+	
+		//in pixels
+		block.target_size = output_size_pixels / blocks_per_direction;
 
-	block_coord_y = blocks;
-	if (blocks % 2 == 0)
-		block_coord_x = my_rank;
-	else
-		block_coord_x = blocks_per_direction - my_rank - 1;
-
-	block.x = pos_x + size / blocks_per_direction * block_coord_x;//upper left corner of the block we want to manage
-	block.y = pos_y + size / blocks_per_direction * block_coord_y;
-	block.size = size / blocks_per_direction;
-
-	//in pixels
-	block.target_size = output_size_pixels / blocks_per_direction;
-	//Start of the first row in our target matrix.
-	//Second row will start with an offset of +output_size_pixels, etc.
-	block.target_pos = block.target_size * (block_coord_x + block_coord_y * output_size_pixels);
-
-
-	HandleBlock(my_rank,block,&window,output_size_pixels, &my_result_vals, max_number_iterations);
+		//Start of the first row in our target matrix.
+		//Second row will start with an offset of +output_size_pixels, etc.		
+		block.target_pos = block.target_size * (block_coord_x + block_coord_y * output_size_pixels);
+	
+		HandleBlock(my_rank,block,&window,output_size_pixels, &my_result_vals, max_number_iterations);
 }
 
 	//Before outputting the result we wait for all the values
@@ -198,13 +197,11 @@ int main(int argc, char *argv[]){
 	//Temporary storage no longer needed
 	free(my_result_vals);
 
-
 	if(my_rank == 0){
 		char filename[100];
 		sprintf(filename,"Mandelbrot_x%f_y%f_size%f.ppm",pos_x,pos_y,size);
 		FILE *fp = fopen(filename, "wb"); /* b - binary mode */
 		fprintf(fp, "P6\n%d %d\n255\n", output_size_pixels,output_size_pixels);
-
 
 		int i, b;
 		for(i=0;i<output_size_pixels;++i){
@@ -224,10 +221,6 @@ int main(int argc, char *argv[]){
 
 		fclose(fp);
 	}
-
-
-
-
 
 	MPI_Win_free(&window);
 	MPI_Finalize();

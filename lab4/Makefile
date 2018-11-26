@@ -4,4 +4,4 @@ compile:
 	mpiicc -g -Wall -o mand mandelbrot.c
 
 run:
-	mpiexec -n 8 ./mand -1.5 -0.5 0.65 10000
+	mpiexec -n 16 ./mand -1.0 -1.5 0.55 100000
