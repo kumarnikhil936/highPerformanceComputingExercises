@@ -12,26 +12,30 @@
 	it also contains information as to where to insert the calculated pixels as a starting shift (target_pos) and a size in pixels (target_size)
 */
 typedef struct Block_{
+
 	//Input
-	float x;//Upper left point
-	float y;//Upper left point
+	float x;	//Upper left point
+	float y;	//Upper left point
 	float size;
+
 	//Output pixels
 	int target_pos;
 	int target_size;//Assumes a square!
 } Block;
 
 
-
 int checkMandelbrot(float real, float imag, int cutoff){
 
 	float x_init = real;
 	float y_init = imag;
+
 	float xtemp = real;
 	float ytemp = imag;
-	int iter = 0;
+
 	float x = real;
 	float y = imag;
+
+	int iter = 0;
 
 	while (iter < cutoff) {
 		x = xtemp;
@@ -41,7 +45,7 @@ int checkMandelbrot(float real, float imag, int cutoff){
 		ytemp = 2*x*y + y_init;
 
 		if (xtemp*xtemp + ytemp*ytemp > 4) {
-			return 0;
+			return iter;
 		}
 		
 		iter = iter + 1;
