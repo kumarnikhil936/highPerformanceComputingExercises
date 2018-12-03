@@ -70,9 +70,9 @@ void *toss_generator_no_mutex(void *thread_passed){
             inside_circle++;
     }
 
-    pthread_mutex_lock(&m1);
+    // pthread_mutex_lock(&m1);
     global_num_in_circle += inside_circle;
-    pthread_mutex_unlock(&m1);
+    // pthread_mutex_unlock(&m1);
 
     return NULL;
 }
@@ -154,52 +154,56 @@ int main (int argc, char *argv[])
     for ( i = (n_threads - leftover_threads); i < n_threads; i++ ){
 	num_toss_in_thread[i] = toss_per_thread + 1; 
     }
- 
-    printf(" Tosses per thread : [");
-    for ( i = 0; i < n_threads; i++) {
-        printf(" %lld ", num_toss_in_thread[i]); 
-    }
-    printf("] \n\n");
+
+    int t;
 
     // Allocate handles
     t_handle = malloc(n_threads * sizeof(pthread_t));
     myThread = malloc(n_threads * sizeof(struct thread_st));
 
-    // Start the time 
-    begin_time = clock();
+//    // Start the time 
+//    begin_time = clock();
     
-    int t;
+//    // Create threads
+//    for (t = 0; t < n_threads; t++) {
+//        myThread[t].id = t;
+//        myThread[t].n_toss = num_toss_in_thread[t];
+//        if(pthread_create(&t_handle[t], NULL, toss_generator_with_mutex, (void*) &myThread[t])) {
+//	    printf("Error while creating a pthread \n");
+//	    return(-1);
+//	}
+//    }
+//
+//    // Join threads
+//    for (t = 0; t < n_threads; t++) {
+//        if(pthread_join(t_handle[t], NULL)) {
+//	    printf("Error while joining the pthreads \n");
+//	    return(-1);
+//	}
+//    }
+//
+//    pi_val = (double)(4 * num_in_circle) / (n_toss);
+//
+//    finish_time = clock();
+//    time_with_mutex = (double)(finish_time - begin_time)/CLOCKS_PER_SEC;
+//    
+//    // Stats
+//    printf("\nWith Mutex :  number_of_tosses_so_far - %lld  ::  total number of tosses in circle - %lld  ::  time taken  - %lf  :: Estimated value of pi - %lf \n", number_of_tosses_so_far, num_in_circle, time_with_mutex, pi_val);
+
+//    // Deallocate memory
+//    free(t_handle);
+//    free(myThread);
+
+    // Allocate handles
+    t_handle = malloc(n_threads * sizeof(pthread_t));
+    myThread = malloc(n_threads * sizeof(struct thread_st));
+
+    begin_time = clock();
+    printf("Running program without mutex\n");    
     // Create threads
     for (t = 0; t < n_threads; t++) {
         myThread[t].id = t;
-        myThread[t].n_toss = num_toss_in_thread[t];
-        if(pthread_create(&t_handle[t], NULL, toss_generator_with_mutex, (void*) &myThread[t])) {
-	    printf("Error while creating a pthread \n");
-	    return(-1);
-	}
-    }
-
-    // Join threads
-    for (t = 0; t < n_threads; t++) {
-        if(pthread_join(t_handle[t], NULL)) {
-	    printf("Error while joining the pthreads \n");
-	    return(-1);
-	}
-    }
-
-    pi_val = (double)(4 * num_in_circle) / (n_toss);
-
-    finish_time = clock();
-    time_with_mutex = (double)(finish_time - begin_time)/CLOCKS_PER_SEC;
-    
-    // Stats
-    printf("\nWith Mutex :  number_of_tosses_so_far - %lld  ::  total number of tosses in circle - %lld  ::  time taken  - %lf  :: Estimated value of pi - %lf \n", number_of_tosses_so_far, num_in_circle, time_with_mutex, pi_val);
-
-
-    begin_time = clock();
-    
-    // Create threads
-    for (t = 0; t < n_threads; t++) {
+	myThread[t].n_toss = num_toss_in_thread[t];
         if(pthread_create(&t_handle[t], NULL, toss_generator_no_mutex, (void*) &myThread[t])) {
 	    printf("Error while creating a pthread \n");
 	    return(-1);
@@ -227,29 +231,30 @@ int main (int argc, char *argv[])
     free(myThread);
     free(num_toss_in_thread);
 
-    // Without threads
-    begin_time = clock();
+    // printf("Running program without threads\n");    
+    // // Without threads
+    // begin_time = clock();
 
-    in_circle = toss_generator(n_toss);
-    pi_val = (double)(4 * in_circle) / (n_toss);
+    // in_circle = toss_generator(n_toss);
+    // pi_val = (double)(4 * in_circle) / (n_toss);
 
-    finish_time = clock();
-    time_no_threads = (double)(finish_time - begin_time)/CLOCKS_PER_SEC;
-    
-    // Stats
-    printf("\nWithout threads :  number of tosses in circle - %lld  ::  time taken  - %lf  :: Estimated value of pi - %lf \n", in_circle, time_no_threads, pi_val);
+    // finish_time = clock();
+    // time_no_threads = (double)(finish_time - begin_time)/CLOCKS_PER_SEC;
+    // 
+    // // Stats
+    // printf("\nWithout threads :  number of tosses in circle - %lld  ::  time taken  - %lf  :: Estimated value of pi - %lf \n", in_circle, time_no_threads, pi_val);
 
-    efficiency_with_mutex = time_no_threads / ( n_threads * time_with_mutex); 
-    efficiency_no_mutex = time_no_threads / ( n_threads * time_no_mutex);
+    // efficiency_with_mutex = time_no_threads / ( n_threads * time_with_mutex); 
+    // efficiency_no_mutex = time_no_threads / ( n_threads * time_no_mutex);
 
-    // Write stats to a file
-    FILE *file = fopen("plotData","a");
-    if(file == NULL){
-        printf("Error while opening the file for writing the data!\n");
-        exit(1);
-    }
-    fprintf(file,"%d\t%lf\t%lf\t%f\t%f\n",n_threads, time_with_mutex, time_no_mutex, efficiency_with_mutex, efficiency_no_mutex); 
-    fclose(file);
+//    // Write stats to a file
+//    FILE *file = fopen("plotData","a");
+//    if(file == NULL){
+//        printf("Error while opening the file for writing the data!\n");
+//        exit(1);
+//    }
+//    fprintf(file,"%d\t%lf\t%lf\t%f\t%f\n",n_threads, time_with_mutex, time_no_mutex, efficiency_with_mutex, efficiency_no_mutex); 
+//    fclose(file);
 
     return 0;
 
