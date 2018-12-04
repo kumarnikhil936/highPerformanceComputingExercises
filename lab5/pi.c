@@ -1,22 +1,40 @@
-#include <pthread.h>
+
 #include <stdio.h>
+#include <sys/time.h>
 #include <stdlib.h>
 #include <time.h>
-#include <stdint.h>
+#include <pthread.h>
 
-// generate toss without thread
-long long int toss_generator(long long int n_toss){
+/* Global variables */
+long long int number_of_tosses_so_far1;
+long long int number_of_tosses_so_far2;
+
+long long int global_num_in_circle1;
+long long int global_num_in_circle2;
+
+long long int number_of_tosses_so_far3;
+long long int global_num_in_circle3;
+
+/* declare the mutex */
+pthread_mutex_t m1 = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t m2 = PTHREAD_MUTEX_INITIALIZER;
+
+// generate toss without threads
+void toss_generator_no_threads(long long int n_toss){
     long long int inside_circle = 0;
     double rand_x, rand_y;
     double sq_dist;
     long long int t;
+    long long int local_num_tosses;
+
+    local_num_tosses = (long long int) n_toss;
 
     // seeding the random based on time and n_toss
-    srand(n_toss * time(NULL));
+    srand(local_num_tosses * time(NULL));
 
     inside_circle = 0;
 
-    for (t = 0; t < n_toss; t++) {
+    for (t = 0; t < local_num_tosses; t++) {
 
 	// keep the values between -1 and 1
         rand_x = (((double)rand()/RAND_MAX) * 2 ) - 1;
@@ -29,7 +47,76 @@ long long int toss_generator(long long int n_toss){
             inside_circle++;
     }
 
-    return inside_circle;
+    number_of_tosses_so_far3 = t;
+    global_num_in_circle3 = inside_circle;
+}
+
+/* generate toss */
+void *toss_generator_update_each_step(void* n_toss){
+    /* long long int local_inside_circle = 0;*/
+    double rand_x, rand_y;
+    double sq_dist;
+    long long int t;
+    long long int local_num_tosses;
+
+    local_num_tosses = (long long int) n_toss;
+    
+    /* seeding the random based on time and n_toss */
+    srand(local_num_tosses * time(NULL));
+
+    for (t = 0; t < local_num_tosses; t++) {
+
+	    /* keep the values between -1 and 1 */
+        rand_x = (((double)rand()/RAND_MAX) * 2 ) - 1;
+        rand_y = (((double)rand()/RAND_MAX) * 2 ) - 1;
+    	sq_dist = (rand_x * rand_x) + (rand_y * rand_y);
+        
+        if(sq_dist <= 1) {
+            pthread_mutex_lock(&m1);
+            global_num_in_circle1++;
+            pthread_mutex_unlock(&m1);
+        }
+    
+        pthread_mutex_lock(&m2);
+        number_of_tosses_so_far1++;
+        pthread_mutex_unlock(&m2);
+    } 
+    /*return local_inside_circle;*/
+    return NULL;
+}
+
+/* generate toss */
+void *toss_generator_update_at_end(void* n_toss){
+    long long int local_inside_circle = 0;
+    double rand_x, rand_y;
+    double sq_dist;
+    long long int t;
+    long long int local_num_tosses;
+
+    local_num_tosses = (long long int) n_toss;
+    
+    /* seeding the random based on time and n_toss */
+    srand(local_num_tosses * time(NULL));
+
+    for (t = 0; t < local_num_tosses; t++) {
+
+	    /* keep the values between -1 and 1 */
+        rand_x = (((double)rand()/RAND_MAX) * 2 ) - 1;
+        rand_y = (((double)rand()/RAND_MAX) * 2 ) - 1;
+    	sq_dist = (rand_x * rand_x) + (rand_y * rand_y);
+        
+        if(sq_dist <= 1)
+            local_inside_circle++;
+    }
+    
+    /* update the global variables */
+    pthread_mutex_lock(&m1);
+    global_num_in_circle2 += local_inside_circle;
+    number_of_tosses_so_far2 += local_num_tosses;
+    pthread_mutex_unlock(&m1);
+    
+    /*return local_inside_circle;*/
+    return NULL;
 }
 
 struct thread_st {
@@ -37,109 +124,40 @@ struct thread_st {
 	long long int n_toss;
 };
 
-
-pthread_mutex_t m1 = PTHREAD_MUTEX_INITIALIZER;
-long long int global_num_in_circle = 0;
-
-// generate toss with thread, without mutex
-void *toss_generator_no_mutex(void *thread_passed){
-    long long int inside_circle = 0;
-    double rand_x, rand_y;
-    double sq_dist;
-    long long int t;
-    
-    struct thread_st *my_thread = (struct thread_st *) thread_passed;
-    long long int n_toss = my_thread->n_toss;
-    int t_id = my_thread->id;
-
-    // seeding the random based on time and thread ID and n_toss
-    uint32_t seed_value = t_id + n_toss*time(NULL);
-
-    inside_circle = 0;
-
-    for (t = 0; t < n_toss; t++) {
-
-	// keep the values between -1 and 1
-        rand_x = (((double)rand_r(&seed_value)/RAND_MAX) * 2 ) - 1;
-
-        rand_y = (((double)rand_r(&seed_value)/RAND_MAX) * 2 ) - 1;
-
-    	sq_dist = (rand_x * rand_x) + (rand_y * rand_y);
-        
-        if(sq_dist <= 1)
-            inside_circle++;
-    }
-
-    pthread_mutex_lock(&m1);
-    global_num_in_circle += inside_circle;
-    pthread_mutex_unlock(&m1);
-
-    return NULL;
-}
-
-pthread_mutex_t m2 = PTHREAD_MUTEX_INITIALIZER;
-long long int number_of_tosses_so_far = 0;
-long long int num_in_circle = 0;
-
-// generate toss with thread, with mutex
-void *toss_generator_with_mutex(void *thread_passed){
-    double rand_x, rand_y;
-    double sq_dist;
-    long long int t;
-    
-    struct thread_st *my_thread = (struct thread_st *) thread_passed;
-    long long int n_toss = my_thread->n_toss;
-    int t_id = my_thread->id;
-
-    // seeding the random based on time and thread ID and n_toss
-    uint32_t seed_value = t_id + n_toss*time(NULL);
-
-    for (t = 0; t < n_toss; t++) {
-
-	// keep the values between -1 and 1
-        rand_x = (((double)rand_r(&seed_value)/RAND_MAX) * 2 ) - 1;
-        
-	rand_y = (((double)rand_r(&seed_value)/RAND_MAX) * 2 ) - 1;
-
-    	sq_dist = (rand_x * rand_x) + (rand_y * rand_y);
-
-        pthread_mutex_lock(&m1);
-        number_of_tosses_so_far++;	// Global variable
-        pthread_mutex_unlock(&m1);
-
-        if(sq_dist <= 1) {
-            pthread_mutex_lock(&m2);
-            num_in_circle++;		// Global Variable
-            pthread_mutex_unlock(&m2);
-        }
-    }
-
-    return NULL;
-}
-
-int n_threads;
-
 int main (int argc, char *argv[])
 {
-    long long int n_toss, in_circle;
-    double pi_val;
+    long long int n_toss;
+    double pi_val1, pi_val2, pi_val3;
 
-    clock_t begin_time, finish_time;
+    /*clock_t begin_time_1, finish_time_1;
+    clock_t begin_time_2, finish_time_2;*/
+    struct timeval t1, t2, t3, t4, t5, t6;
 
     long long int *num_toss_in_thread;
     struct thread_st *myThread;
-    pthread_t *t_handle;
+    pthread_t *thread_handles;
 
-    double time_no_threads, time_no_mutex, time_with_mutex; 
-    double efficiency_with_mutex, efficiency_no_mutex;
+    number_of_tosses_so_far1 = 0;
+    global_num_in_circle1 = 0;
 
-    // Obtain the values form command line arguments and convert them from string to long integer
+    number_of_tosses_so_far2 = 0;
+    global_num_in_circle2 = 0;
+
+    number_of_tosses_so_far3 = 0;
+    global_num_in_circle3 = 0;
+
+    long double time_1, time_2, time_3; 
+    /*double efficiency_1, efficiency_2;*/
+    
+    long int n_threads;
+    
+    /* Obtain the values form command line arguments and convert them from string to long integer */
     n_threads = strtol(argv[1], NULL, 10);
     n_toss = strtol(argv[2], NULL, 10);
 
     num_toss_in_thread = malloc(n_threads * sizeof(n_toss));
   
-    // Divide tosses among threads 
+    /* Divide tosses among threads */
     long long int toss_per_thread;
     long long int leftover_threads;
     
@@ -155,103 +173,106 @@ int main (int argc, char *argv[])
 	num_toss_in_thread[i] = toss_per_thread + 1; 
     }
  
-    printf(" Tosses per thread : [");
-    for ( i = 0; i < n_threads; i++) {
-        printf(" %lld ", num_toss_in_thread[i]); 
-    }
-    printf("] \n\n");
-
-    // Allocate handles
-    t_handle = malloc(n_threads * sizeof(pthread_t));
+    /* Allocate handles */
+    thread_handles = malloc(n_threads * sizeof(pthread_t));
     myThread = malloc(n_threads * sizeof(struct thread_st));
-
-    // Start the time 
-    begin_time = clock();
     
-    int t;
-    // Create threads
+    /* Task1 */
+
+    /* Start the time */
+    /*begin_time_1 = clock();*/
+    gettimeofday(&t1, NULL);
+
+    long int t;
+    
+    /* Create threads */
     for (t = 0; t < n_threads; t++) {
         myThread[t].id = t;
         myThread[t].n_toss = num_toss_in_thread[t];
-        if(pthread_create(&t_handle[t], NULL, toss_generator_with_mutex, (void*) &myThread[t])) {
-	    printf("Error while creating a pthread \n");
-	    return(-1);
+        pthread_create(&thread_handles[t], NULL, toss_generator_update_each_step, (void*) (myThread[t].n_toss));
 	}
-    }
 
-    // Join threads
+    /* Join threads */
     for (t = 0; t < n_threads; t++) {
-        if(pthread_join(t_handle[t], NULL)) {
-	    printf("Error while joining the pthreads \n");
-	    return(-1);
-	}
+        pthread_join(thread_handles[t], NULL);
     }
 
-    pi_val = (double)(4 * num_in_circle) / (n_toss);
+    pi_val1 = (double)(4 * global_num_in_circle1)/number_of_tosses_so_far1;
 
-    finish_time = clock();
-    time_with_mutex = (double)(finish_time - begin_time)/CLOCKS_PER_SEC;
+    /*finish_time_1 = clock();*/
+    gettimeofday(&t2, NULL);
+
+    time_1 = ((t2.tv_sec*1000000 - t1.tv_sec*1000000) + t2.tv_usec + t1.tv_usec);
+    /* time_with_mutex = (double)(finish_time_1 - begin_time_1)/CLOCKS_PER_SEC; */
     
-    // Stats
-    printf("\nWith Mutex :  number_of_tosses_so_far - %lld  ::  total number of tosses in circle - %lld  ::  time taken  - %lf  :: Estimated value of pi - %lf \n", number_of_tosses_so_far, num_in_circle, time_with_mutex, pi_val);
+    /* Stats */
+    printf("\nTask1: Num threads: %ld :: Num tosses: %lld ::  Num tosses in circle: %lld ::  Time elapsed: %Lf :: Pi: %lf \n", n_threads, number_of_tosses_so_far1, global_num_in_circle1, time_1/1000, pi_val1);
 
-
-    begin_time = clock();
     
-    // Create threads
+    /* Task2 */
+    
+    /* Start the time */
+    /*begin_time_2 = clock();*/
+    gettimeofday(&t3, NULL);
+   
+    /* Create threads */
     for (t = 0; t < n_threads; t++) {
-        if(pthread_create(&t_handle[t], NULL, toss_generator_no_mutex, (void*) &myThread[t])) {
-	    printf("Error while creating a pthread \n");
-	    return(-1);
+        /*myThread[t].id = t;
+        myThread[t].n_toss = num_toss_in_thread[t];*/
+        pthread_create(&thread_handles[t], NULL, toss_generator_update_at_end, (void*) (myThread[t].n_toss));
 	}
-    }
 
-    // Join threads
+    /* Join threads */
     for (t = 0; t < n_threads; t++) {
-        if(pthread_join(t_handle[t], NULL)) {
-	    printf("Error while joining the pthreads \n");
-	    return(-1);
-	}
+        pthread_join(thread_handles[t], NULL);
     }
 
-    pi_val = (double)(4 * global_num_in_circle) / (n_toss);
+    pi_val2 = (double)(4 * global_num_in_circle2)/number_of_tosses_so_far2;
 
-    finish_time = clock();
-    time_no_mutex = (double)(finish_time - begin_time)/CLOCKS_PER_SEC;
+    /*finish_time_2 = clock();*/
+    gettimeofday(&t4, NULL);
+
+    time_2 = ((t4.tv_sec*1000000 - t3.tv_sec*1000000) + t4.tv_usec + t3.tv_usec);
+    /* time_with_mutex = (double)(finish_time - begin_time)/CLOCKS_PER_SEC; */
     
-    // Stats
-    printf("\nWithout Mutex :  number of tosses in circle - %lld  ::  time taken  - %lf  :: Estimated value of pi - %lf \n", global_num_in_circle, time_no_mutex, pi_val);
+    /* Stats */
+    printf("\nTask2: Num threads: %ld :: Num tosses: %lld ::  Num tosses in circle: %lld ::  Time elapsed: %Lf :: Pi: %lf \n", n_threads, number_of_tosses_so_far2, global_num_in_circle2, time_2/1000, pi_val2);
 
-    // Deallocate memory
-    free(t_handle);
-    free(myThread);
-    free(num_toss_in_thread);
-
-    // Without threads
-    begin_time = clock();
-
-    in_circle = toss_generator(n_toss);
-    pi_val = (double)(4 * in_circle) / (n_toss);
-
-    finish_time = clock();
-    time_no_threads = (double)(finish_time - begin_time)/CLOCKS_PER_SEC;
+ 
+    /* Without using any threads */
     
-    // Stats
-    printf("\nWithout threads :  number of tosses in circle - %lld  ::  time taken  - %lf  :: Estimated value of pi - %lf \n", in_circle, time_no_threads, pi_val);
+    /* Start the time */
+    /*begin_time_2 = clock();*/
+    gettimeofday(&t5, NULL);
+   
+    toss_generator_no_threads(n_toss);    
 
-    efficiency_with_mutex = time_no_threads / ( n_threads * time_with_mutex); 
-    efficiency_no_mutex = time_no_threads / ( n_threads * time_no_mutex);
+    pi_val3 = (double)(4 * global_num_in_circle3)/number_of_tosses_so_far3;
 
+    /*finish_time_2 = clock();*/
+    gettimeofday(&t6, NULL);
+
+    time_3 = ((t6.tv_sec*1000000 - t5.tv_sec*1000000) + t6.tv_usec + t5.tv_usec);
+    
+    /* Stats */
+    printf("\nNo threads: Num tosses: %lld ::  Num tosses in circle: %lld ::  Time elapsed: %Lf :: Pi: %lf \n", number_of_tosses_so_far3, global_num_in_circle3, time_3/1000, pi_val3);
+
+    double efficiency_1, efficiency_2;
+    efficiency_1 = time_3 / ( n_threads * time_1); 
+    efficiency_2 = time_3 / ( n_threads * time_2);
+    
     // Write stats to a file
-    FILE *file = fopen("plotData","a");
+    FILE *file = fopen("plot.dat","a");
     if(file == NULL){
         printf("Error while opening the file for writing the data!\n");
         exit(1);
     }
-    fprintf(file,"%d\t%lf\t%lf\t%f\t%f\n",n_threads, time_with_mutex, time_no_mutex, efficiency_with_mutex, efficiency_no_mutex); 
+    fprintf(file,"%ld\t%Lf\t%Lf\t%f\t%f\n",n_threads, time_1, time_2, efficiency_1, efficiency_2); 
     fclose(file);
 
+    free(thread_handles);
+    free(myThread);
+    free(num_toss_in_thread);
+    
     return 0;
-
 }
-
