@@ -206,7 +206,7 @@ int main (int argc, char *argv[])
     /* time_with_mutex = (double)(finish_time_1 - begin_time_1)/CLOCKS_PER_SEC; */
     
     /* Stats */
-    printf("\nTask1: Num threads: %ld :: Num tosses: %lld ::  Num tosses in circle: %lld ::  Time elapsed: %Lf :: Pi: %lf \n", n_threads, number_of_tosses_so_far1, global_num_in_circle1, time_1/1000, pi_val1);
+    printf("\nTask1: Num threads: %ld :: Num tosses: %lld ::  Num tosses in circle: %lld ::  Time elapsed: %Lf :: Pi: %lf \n", n_threads, number_of_tosses_so_far1, global_num_in_circle1, time_1/1000000, pi_val1);
 
     
     /* Task2 */
@@ -236,7 +236,7 @@ int main (int argc, char *argv[])
     /* time_with_mutex = (double)(finish_time - begin_time)/CLOCKS_PER_SEC; */
     
     /* Stats */
-    printf("\nTask2: Num threads: %ld :: Num tosses: %lld ::  Num tosses in circle: %lld ::  Time elapsed: %Lf :: Pi: %lf \n", n_threads, number_of_tosses_so_far2, global_num_in_circle2, time_2/1000, pi_val2);
+    printf("\nTask2: Num threads: %ld :: Num tosses: %lld ::  Num tosses in circle: %lld ::  Time elapsed: %Lf :: Pi: %lf \n", n_threads, number_of_tosses_so_far2, global_num_in_circle2, time_2/1000000, pi_val2);
 
  
     /* Without using any threads */
@@ -255,7 +255,7 @@ int main (int argc, char *argv[])
     time_3 = ((t6.tv_sec*1000000 - t5.tv_sec*1000000) + t6.tv_usec + t5.tv_usec);
     
     /* Stats */
-    printf("\nNo threads: Num tosses: %lld ::  Num tosses in circle: %lld ::  Time elapsed: %Lf :: Pi: %lf \n", number_of_tosses_so_far3, global_num_in_circle3, time_3/1000, pi_val3);
+    printf("\nNo threads: Num tosses: %lld ::  Num tosses in circle: %lld ::  Time elapsed: %Lf :: Pi: %lf \n", number_of_tosses_so_far3, global_num_in_circle3, time_3/1000000, pi_val3);
 
     double efficiency_1, efficiency_2;
     efficiency_1 = time_3 / ( n_threads * time_1); 
