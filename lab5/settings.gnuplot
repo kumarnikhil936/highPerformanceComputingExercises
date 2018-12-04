@@ -12,4 +12,4 @@ set style line 2 \
     linecolor rgb '#dd181f' \
     linetype 1 linewidth 2 \
     pointtype 5 pointsize 1.5
-plot 'plot.dat' u 1:2 with linespoints linestyle 1 title "With mutex", '' u 1:3 with linespoints linestyle 2 title "without mutex
+plot 'plot.dat' u 1:2 with linespoints linestyle 1 title "Task 1", '' u 1:3 with linespoints linestyle 2 title "Task 2"
