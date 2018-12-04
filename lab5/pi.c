@@ -62,13 +62,13 @@ void *toss_generator_update_each_step(void* n_toss){
     local_num_tosses = (long long int) n_toss;
     
     /* seeding the random based on time and n_toss */
-    srand(local_num_tosses * time(NULL));
+    uint32_t seed_value = local_num_tosses * time(NULL);
 
     for (t = 0; t < local_num_tosses; t++) {
 
 	    /* keep the values between -1 and 1 */
-        rand_x = (((double)rand()/RAND_MAX) * 2 ) - 1;
-        rand_y = (((double)rand()/RAND_MAX) * 2 ) - 1;
+        rand_x = (((double)rand_r(&seed_value)/RAND_MAX) * 2 ) - 1;
+        rand_y = (((double)rand_r(&seed_value)/RAND_MAX) * 2 ) - 1;
     	sq_dist = (rand_x * rand_x) + (rand_y * rand_y);
         
         if(sq_dist <= 1) {
@@ -96,13 +96,13 @@ void *toss_generator_update_at_end(void* n_toss){
     local_num_tosses = (long long int) n_toss;
     
     /* seeding the random based on time and n_toss */
-    srand(local_num_tosses * time(NULL));
+    uint32_t seed_value = local_num_tosses * time(NULL);
 
     for (t = 0; t < local_num_tosses; t++) {
 
-	    /* keep the values between -1 and 1 */
-        rand_x = (((double)rand()/RAND_MAX) * 2 ) - 1;
-        rand_y = (((double)rand()/RAND_MAX) * 2 ) - 1;
+	/* keep the values between -1 and 1 */
+        rand_x = (((double)rand_r(&seed_value)/RAND_MAX) * 2 ) - 1;
+        rand_y = (((double)rand_r(&seed_value)/RAND_MAX) * 2 ) - 1;
     	sq_dist = (rand_x * rand_x) + (rand_y * rand_y);
         
         if(sq_dist <= 1)
