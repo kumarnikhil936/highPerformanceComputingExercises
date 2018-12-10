@@ -1,12 +1,8 @@
-default: serial
+default: parallel
 
 parallel:
-	g++ -fopenmp g_omp.cpp -o g_omp
-	./g_omp
-
-serial:
-	gcc serial.cpp -o serial
-	./serial
+	gcc-7 -fopenmp -o gol gameoflife.c
+	./gol input64.ppm 10 
 
 clean:
-	rm g_omp g_serial
+	rm gol output*ppm
