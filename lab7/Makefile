@@ -1,8 +1,8 @@
 compile:
-	gcc-7 -Wall -fopenmp -g -o exec main.c
+	gcc -Wall -fopenmp -g -o exec main.c
 
 run:
-	./exec 5
+	./exec 3000
 
 clean:
 	rm exec
