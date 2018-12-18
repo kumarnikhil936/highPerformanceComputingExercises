@@ -3,6 +3,3 @@ compile:
 
 run:
 	./exec 3000
-
-clean:
-	rm exec

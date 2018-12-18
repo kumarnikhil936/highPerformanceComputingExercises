@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
     gauss_t1 = omp_get_wtime();
     printf("\n=> Performing Gaussian elimination\n");
     for(i=0; i<n-1; i++){
-    #pragma omp parallel for shared(i, temp, n, a) private(j, k) schedule(runtime)        
+    #pragma omp parallel for shared(i, temp, n, a) private(j, k) schedule(static, 150)        
         for(j=i+1; j<n; j++){
             temp = (a[j][i])/(a[i][i]);    
             /* Create a upper triangular matrix */
@@ -65,8 +65,9 @@ int main(int argc, char *argv[]) {
     
     back_t1 = omp_get_wtime();
     printf("\n=> Performing Back substitution\n");
-    #pragma omp parallel shared(x, n, a) private(i, j)        
+    #pragma omp parallel shared(x, n, a) private(i, j)       
     {
+        #pragma omp for schedule(static, 150)
         for(i=n-1; i>=0; i--){
             /* Start from the last row and go upwards */
             x[i] = a[i][n];
