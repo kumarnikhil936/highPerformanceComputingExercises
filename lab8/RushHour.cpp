@@ -18,33 +18,33 @@ using namespace std;
  *    */
 void Check(State state, StateManager* manager){
     /*
- *      Task 1
- *           ------
- *                Implement the body of this function. It should perform the following operations:
- *                     -Immediately return if the State to be analysed took more steps to reach than our current best solution. */
+     *      Task 1
+     *           ------
+     *                Implement the body of this function. It should perform the following operations:
+     *                     -Immediately return if the State to be analysed took more steps to reach than our current best solution. */
     if (state.solutionSize() > manager->bestSolutionSize()) {
         return;
     }
     /*
- *      -Try to claim its state in the manager. If the state is already claimed by another task, immediately return. */
+     *      -Try to claim its state in the manager. If the state is already claimed by another task, immediately return. */
     
     if(!(manager->claim(state))) {
         return;
     }
     
     /*
- *      -Check if the state is a winning state, if so enter its solution into the manager and return. */
+     *      -Check if the state is a winning state, if so enter its solution into the manager and return. */
     
     if (state.won(manager)) {
         manager->enterSolution(state);
     }
     
     /*
- *      -Iterate over all the cars (state.carCount()), for each car create the two followup states
- *           created by moving the respective car forward or backward
- *                (state.move_car(...) returns such a followup state from a given car number and direction)
- *                     -Check whether the followup states created are legal states. If so recursively call Check(...) on them.
- *                          */
+     *      -Iterate over all the cars (state.carCount()), for each car create the two followup states
+     *           created by moving the respective car forward or backward
+     *                (state.move_car(...) returns such a followup state from a given car number and direction)
+     *                     -Check whether the followup states created are legal states. If so recursively call Check(...) on them.
+     *                          */
     
     
     int i;
@@ -52,30 +52,28 @@ void Check(State state, StateManager* manager){
     State state0, state1;
     
     for(i=0; i<state.carCount(); i++){
-       	    state0 = state.move_car(i, 0);
-       	    state1 = state.move_car(i, 1);
+        state0 = state.move_car(i, 0);
+        state1 = state.move_car(i, 1);
 #pragma omp parallel 
-{
+        {
 #pragma omp single
-    {
+            {
 # pragma omp taskgroup
-	{
+                {
 #pragma omp task shared(manager) untied
-            if (state0.legal(manager)) {
-                Check(state0, manager);
-            }
+                    if (state0.legal(manager)) {
+                        Check(state0, manager);
+                    }
                     
 #pragma omp task shared(manager) untied
-            if (state1.legal(manager)) {
-                Check(state1, manager);
-            }
+                    if (state1.legal(manager)) {
+                        Check(state1, manager);
+                    }
 #pragma omp taskwait
                 }
             }
         }
     }
-    
-    
     
     return;
 }
@@ -88,11 +86,11 @@ void Check(State state, StateManager* manager){
 int main(int argc, char * argv[])
 {
     /*
- *      Task 0
- *           ------
- *                Draw with pen and paper the initial configuration built here.
- *                     Work out a shortest solution to compare your algorithm against.
- *                          */
+     *      Task 0
+     *           ------
+     *                Draw with pen and paper the initial configuration built here.
+     *                     Work out a shortest solution to compare your algorithm against.
+     *                          */
     
     double time0, time1;
     
@@ -101,25 +99,25 @@ int main(int argc, char * argv[])
     StateManager * state_manager = new StateManager(pf);
     
     /*
- *      State holds information about one configuration we analyze. The initial state will be initialized with the following cars:
- *           Car(x,y,orientation,length): x,y coordinates of the lower left tile of the car,
- *                orientation 0: horizontally aligned, drives left/right
- *                     orientation 1: vertically aligned, drives down/up
- *                          length: how long is this car?
- *                               The first car is the one that needs to reach the side of the playing field stated above, which is only possible if it has the proper orientation!
- *                                    The origin x=0, y=0 is the position in the lower left corner of the playing field.
- *                                         */
+     *      State holds information about one configuration we analyze. The initial state will be initialized with the following cars:
+     *           Car(x,y,orientation,length): x,y coordinates of the lower left tile of the car,
+     *                orientation 0: horizontally aligned, drives left/right
+     *                     orientation 1: vertically aligned, drives down/up
+     *                          length: how long is this car?
+     *                               The first car is the one that needs to reach the side of the playing field stated above, which is only possible if it has the proper orientation!
+     *                                    The origin x=0, y=0 is the position in the lower left corner of the playing field.
+     *                                         */
     vector<Car> cars_ = {Car(0,4,0,2),Car(2,4,1,3),Car(3,2,1,3),Car(0,2,0,2),Car(2,1,0,2)};
     
     /*
- *      Task 2
- *           ------
- *                -Add OpenMP functionality to the solver by enclosing the main function's Check() call in a
- *                     #parallel environment and a taskgroup. Spawn the Check(...) function as a task.
- *                          Remember that the first Check(...) call only needs to be called by one thread
- *                               -In Check() spawn more tasks for the recursion in a reasonable way.
- *                                    Use the "default(none)" tag and explicitly state what a task can access and how it is accessed
- *                                         */
+     *      Task 2
+     *           ------
+     *                -Add OpenMP functionality to the solver by enclosing the main function's Check() call in a
+     *                     #parallel environment and a taskgroup. Spawn the Check(...) function as a task.
+     *                          Remember that the first Check(...) call only needs to be called by one thread
+     *                               -In Check() spawn more tasks for the recursion in a reasonable way.
+     *                                    Use the "default(none)" tag and explicitly state what a task can access and how it is accessed
+     *                                         */
     
     time0 = omp_get_wtime();
     
@@ -128,7 +126,7 @@ int main(int argc, char * argv[])
     state_manager->printBestSolution();
     
     time1 = omp_get_wtime();
-    printf("\nTime to execute %f seconds\n", time1-time0);    
+    printf("\nTime to execute %f seconds\n", time1-time0);
     delete state_manager;
     return 0;
     

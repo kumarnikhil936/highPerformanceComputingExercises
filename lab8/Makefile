@@ -1,4 +1,4 @@
-default: compile
+default: compile run
 
 compile:
 	g++ -Wall -fopenmp -o Rushhour Car.cpp State.cpp StateManager.cpp RushHour.cpp
